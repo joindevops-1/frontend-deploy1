@@ -1,0 +1,5 @@
+deployment:
+  imageRepo: joindevops/frontend
+  imageVersion: IMAGE_VERSION
+service:
+  servicePort: 80 # default value

@@ -1,64 +1,22 @@
-pipeline {
-    agent {
-        label 'AGENT-1'
-    }
-    options {
-        timeout(time: 30, unit: 'MINUTES')
-        disableConcurrentBuilds()
-        ansiColor('xterm')
-    }
-    environment{
-        def appVersion = '' //variable declaration
-        nexusUrl = 'nexus.daws78s.online:8081'
-    }
-    parameters{
-        string(name: 'appVersion', defaultValue: '1.0.0', description: 'What is the application version?')
-    }
-    stages {
-        stage('print the version'){
-            steps{
-                script{
-                    echo "App version: ${params.appVersion}"
-                }
-            }
-        }
-        stage('Init') {
-            steps {
-                sh """
-                    cd terraform
-                    terraform init
-                """
-            }
-        }
-        stage('Plan') {
-            steps {
-                sh """
-                    cd terraform
-                    terraform plan -var="app_version=${params.appVersion}"
-                """
-            }
-        }
+@Library('jenkins-shared-library') _
 
-        stage('Deploy') {
-            steps {
-                sh """
-                    cd terraform
-                    terraform apply -var="app_version=${params.appVersion}" -auto-approve
-                """
-            }
-        }
+// Parameters must be declared before any pipeline logic executes
+properties([
+  parameters([
+    string(name: 'appVersion',   description: 'Enter Application version'),
+    choice(name: 'deploy_to', choices: ['dev', 'qa', 'prod'], description: 'Target environment')
+  ])
+])
 
-    }
-    post { 
-        always { 
-            echo 'I will always say Hello again!'
-            deleteDir()
-        }
-        success { 
-            echo 'I will run when pipeline is success'
-        }
-        failure { 
-            echo 'I will run when pipeline is failure'
-        }
-    }
-}
+// Build configMap from params (with safe defaults)
+def configMap = [
+  project    : "roboshop",
+  component  : "frontend",
+  deploy_to: (params.deploy_to       ?: 'dev'),
+  appVersion : (params.appVersion)
+]
+
+echo "Going to execute Jenkins shared library"
+echo "ConfigMap: ${configMap}"
+
+EKSDeploy(configMap)
